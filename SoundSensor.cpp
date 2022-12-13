@@ -39,7 +39,7 @@ void SoundSensor::open() {
 int SoundSensor::next() {
   
   int result = 0;
-  
+
   // TODO
 
   Serial.println("[FETCH] ==> Gotten current crying strength: " + String(result) + ".");
@@ -48,7 +48,7 @@ int SoundSensor::next() {
 }
 
 /**
- * closes the heartbeat senor.
+ * closes the SoundSensor senor.
  *
  * @pre {@code SoundSensorPin != null}
  */

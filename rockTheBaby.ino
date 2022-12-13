@@ -46,6 +46,8 @@ HeartbeatSensor heartbeatSensor(HEARTBEATSENSOR_PIN, AMOUNT_OF_MEASUREMENTS, AMO
 Motor motor(MOTOR_PIN);
 #include "SoundSensor.h"
 SoundSensor soundSensor(SOUNDSENSOR_PIN);
+#include "Display.h"
+Display display();
 
 // Methods: (do not change)
 /*
@@ -55,6 +57,7 @@ SoundSensor soundSensor(SOUNDSENSOR_PIN);
  *   - bool sensorCheck
  * - void loop
  *   - void blink 
+ *   - void updateDisplay
  *   - void improveFrequentcy
  *   - void improveAmplitude
  *   - int currentHeartbeat
@@ -71,6 +74,9 @@ SoundSensor soundSensor(SOUNDSENSOR_PIN);
  */
 void setup() {
   
+  /// let the user know that the startup has begun.
+  display.updateCurrentTask("Booting up");
+
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
   
@@ -84,6 +90,7 @@ void setup() {
   }
   
   Serial.println("[ RUN ] ==> Finding optimal solution.");
+  display.updateCurrentTask("Finding optimal solution");
   // goes to void loop();
 }
 
@@ -96,6 +103,7 @@ void setupSensors() {
   heartbeatSensor.open();
   motor.open();
   soundSensor.open();
+  display.open();
 }
 
 /**
@@ -137,9 +145,10 @@ void loop() {
   improveAmplitude();
   
   // TODO Exception handling
-// wE WROTE WSOME CAPPED CODE
+
   // to show that we have done one loop, we blink.
   blink();
+  updateDisplay();
 
   // if it has been the same for a while, we break the loop
   if (amplitudeCounter >= THRESHOLD && frequentcyCounter >= THRESHOLD) {
@@ -158,6 +167,17 @@ void blink() {
   Serial.println("[ RUN ] ==> Completed one cycle.");
   delay(100);
   digitalWrite(LED_BUILTIN, LOW);
+}
+
+/**
+ * turns the build in LED on for x seconds.
+ *
+ * @pre LED_BUILTIN is set to INPUT
+ */
+void updateDisplay() {
+  display.updateAmplitude((amplitudeUpper + amplitudeLower) / 2);
+  display.updateFrequentcy((frequentcyLower + frequentcyUpper) / 2);
+  display.updateBPM(this.current_bmp());
 }
 
 /**
@@ -307,6 +327,7 @@ void exiting() {
   heartbeatSensor.close();
   motor.close();
   soundSensor.close();
+  display.close();
 
   exit(0);
 }
