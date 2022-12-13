@@ -137,7 +137,7 @@ void loop() {
   improveAmplitude();
   
   // TODO Exception handling
-
+// wE WROTE WSOME CAPPED CODE
   // to show that we have done one loop, we blink.
   blink();
 
