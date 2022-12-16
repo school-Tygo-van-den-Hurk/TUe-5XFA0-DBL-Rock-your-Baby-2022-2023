@@ -17,9 +17,10 @@
 class SoundSensor {
   private:
     int SoundSensorPin;
+    bool exitOnError;
 
   public:
-    SoundSensor(int pin);
+    SoundSensor(int pin, bool EoE);
     void open();
     int next();
     void close();

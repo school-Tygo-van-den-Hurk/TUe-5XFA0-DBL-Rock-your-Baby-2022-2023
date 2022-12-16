@@ -25,6 +25,7 @@ class HeartbeatSensor {
     int single_high_array[200];
     int single_low_array[200];
     int arrayLength = 200;
+    bool exitOnError;
 
     // private methods
     void measure(int measurementIndex);
@@ -33,7 +34,12 @@ class HeartbeatSensor {
 
   public:
     // constructor
-    HeartbeatSensor(int pin, int start_amount_of_time_between_measurements, int start_amount_of_measurements);
+    HeartbeatSensor(
+      int pin,
+      int start_amount_of_time_between_measurements,
+      int start_amount_of_measurements,
+      bool EoE
+    );
     
     // public methods
     void open();

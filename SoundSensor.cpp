@@ -13,7 +13,7 @@
 /**
  * An object to get the baby's crying strength.
  */
-SoundSensor::SoundSensor(int pin) {
+SoundSensor::SoundSensor(int pin, bool EoE) {
   SoundSensorPin = pin;
 }
 

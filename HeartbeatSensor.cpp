@@ -17,7 +17,13 @@
 /**
  * An object to read the current heartbeat of the baby
  */
-HeartbeatSensor::HeartbeatSensor(int pin, int start_amount_of_time_between_measurements, int start_amount_of_measurements) {
+HeartbeatSensor::HeartbeatSensor(
+  int pin, 
+  int start_amount_of_time_between_measurements, 
+  int start_amount_of_measurements,
+  bool EoE
+) {
+
   pinHeartbeatSensor = pin;
   amount_of_time_between_measurements = start_amount_of_time_between_measurements;
   amount_of_measurements = start_amount_of_measurements;
@@ -62,7 +68,13 @@ int HeartbeatSensor::next() {
   // Post-Condition Guard-Statement:
   if (result < MIN_BABY_HEARTBEAT || result > MAX_BABY_HEARTBEAT) {
     Serial.println("[ERROR] ==> this is not with in the baby's normal parameters.");
-    exit(1);
+
+    if (exitOnError) {
+      exit(1);
+
+    } else {
+      delay(10000);
+    }
   }
 
   return result;
@@ -94,7 +106,13 @@ void HeartbeatSensor::measure(int measurementIndex) {
   // Pre-Condition Guard-Statement:
   if(measurementIndex > 200) {
     Serial.print("[ERROR] ==> array can only hold at most 200 messurements.");
-    exit(1);
+
+    if (exitOnError) {
+      exit(1);
+
+    } else {
+      delay(10000);
+    }
   }
 
   // Reset the previous entry back to zero.
@@ -145,7 +163,13 @@ int HeartbeatSensor::mode(int array[], int amount_of_measurements) {
   // Pre-Condition Guard-Statement:
   if (amount_of_measurements > 200) {
     Serial.print("[ERROR] ==> array can only hold at most 200 messurements.");
-    exit(1);
+
+    if (exitOnError) {
+      exit(1);
+
+    } else {
+      delay(10000);
+    }
   }
 
   int counter = 1;
@@ -191,7 +215,13 @@ int HeartbeatSensor::bpm(int modeOfHighTimeInMs, int modeOfLowTimeInMs) {
     Serial.print(
       "[ERROR] ==> heartbeat time (modeOfHighTimeInMs + modeOfLowTimeInMs) cannot be 0ms."
     );
-    exit(1);
+
+    if (exitOnError) {
+      exit(1);
+
+    } else {
+      delay(10000);
+    }
   }
 
   return (60 * (1 / (modeOfHighTimeInMs + modeOfLowTimeInMs)));  

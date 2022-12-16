@@ -7,9 +7,13 @@
  * @version 1.0
  */
 // Define the constands: (you can change this), however, it is ALSO defined in HearbeatSensor.cpp
+//  - algarithm:
+#define useBinarySearch                       true    // if true binarySearch, else pathFinding.
 //  - baby:                                           
- #define MAX_BABY_HEARTBEAT                    160      
- #define MIN_BABY_HEARTBEAT                    90       
+#define MAX_BABY_HEARTBEAT                    160      
+#define MIN_BABY_HEARTBEAT                    90     
+//  - exit on error:
+#define EXIT_ON_ERROR                         true
 //  - measurements:                                    
 #define AMOUNT_OF_MEASUREMENTS                1500     
 #define AMOUNT_OF_TIME_BETWEEN_MEASUREMENTS   0       // recommended 0.     
@@ -24,9 +28,10 @@
 #define AMPLITUDE_LOWER                       0        
 #define ACCEPTANCE_SENSITIVITY_AMPLITUDE      1       
 // Define pins: (you can change this)                 // Choose out of these options, and no other.
-#define HEARTBEATSENSOR_PIN                   A0      // analog pin  :  {A0, A1, A2, A3, A4}
-#define MOTOR_PIN                             3       //    PWM pin  :  {3, 5, 6, 9, 10, 11}
-#define SOUNDSENSOR_PIN                       A1      // analog pin  :  {A0, A1, A2, A3, A4}
+#define HEARTBEATSENSOR_PIN                   35      // analog pin  :  {A0, A1, A2, A3, A4}
+#define MOTOR_PIN_frequency                   3       //    PWM pin  :  {3, 5, 6, 9, 10, 11}
+#define MOTOR_PIN_amplitude                   3       //    PWM pin  :  {3, 5, 6, 9, 10, 11}
+#define SOUNDSENSOR_PIN                       36      // analog pin  :  {A0, A1, A2, A3, A4}
                                                       
 // Define global variables: (do not change)           
 int array[AMOUNT_OF_MEASUREMENTS];
@@ -41,13 +46,18 @@ int upperSearch = 0;
 
 // Define global Objects: (do not change)
 #include "HeartbeatSensor.h"
-HeartbeatSensor heartbeatSensor(HEARTBEATSENSOR_PIN, AMOUNT_OF_MEASUREMENTS, AMOUNT_OF_TIME_BETWEEN_MEASUREMENTS);
+HeartbeatSensor heartbeatSensor(
+  HEARTBEATSENSOR_PIN,
+  AMOUNT_OF_MEASUREMENTS,
+  AMOUNT_OF_TIME_BETWEEN_MEASUREMENTS,
+  EXIT_ON_ERROR
+);
 #include "MOTOR.h"
-Motor motor(MOTOR_PIN);
+Motor motor(MOTOR_PIN, EXIT_ON_ERROR);
 #include "SoundSensor.h"
-SoundSensor soundSensor(SOUNDSENSOR_PIN);
+SoundSensor soundSensor(SOUNDSENSOR_PIN, EXIT_ON_ERROR);
 #include "Display.h"
-Display display();
+Display display(EXIT_ON_ERROR);
 
 // Methods: (do not change)
 /*
@@ -55,11 +65,15 @@ Display display();
  * - void Setup
  *   - void setupSensors
  *   - bool sensorCheck
- * - void loop
- *   - void blink 
- *   - void updateDisplay
+ * - void loop (unused)
+ * - void binarysearch
  *   - void improveFrequentcy
  *   - void improveAmplitude
+ * - void pathFinding
+ *   - ...
+ * - helper methods: 
+ *   - void blink 
+ *   - void updateDisplay
  *   - int currentHeartbeat
  *   - int currentCryingStrength
  * - void exiting
@@ -74,8 +88,8 @@ Display display();
  */
 void setup() {
   
-  /// let the user know that the startup has begun.
-  display.updateCurrentTask("Booting up");
+  // let the user know that the startup has begun.
+  display.updateCurrentTask("Setting up");
 
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
@@ -83,15 +97,23 @@ void setup() {
   Serial.println("[BUILD] ==> try setting up the objects.");
   setupSensors();
 
+  // they are not set up correctly then that means that something has gone wrong
   Serial.println("[BUILD] ==> check setup of the objects.");
-  if (!sensorCheck()) { // they are not set up correctly then that means that something has gone wrong
+  if (!sensorCheck()) { 
     Serial.println("[ERROR] ==> There was a problem setting up the connections.");
-    exiting();
+    exiting(1);
   }
   
   Serial.println("[ RUN ] ==> Finding optimal solution.");
-  display.updateCurrentTask("Finding optimal solution");
-  // goes to void loop();
+  display.updateCurrentTask("Finding Optimal Solution");
+  
+  // use an algarithm depending on the setting
+  if (useBinarySearch) { // TODO make it depent on a switch on the board
+    binarySearch();
+    
+  } else{
+    pathFinding();
+  }
 }
 
 /**
@@ -113,49 +135,55 @@ void setupSensors() {
  * @return true iff motor and heartbeatSensor are set up correctly
  */
 bool sensorCheck() {
-  Serial.println("[BUILD] ==> Checking if the sensors are working correctly.");
   
-  int motorA = motor.getAmplitude();
-  int motorF = motor.getFrequentcy();
+  Serial.println("[BUILD] ==> Checking if the sensors are working correctly.");
 
-  int heartbeatSensorTest = heartbeatSensor.next();
-
-  bool result = (
-    (motorA == 50 && motorF == 50) // check motor has correct start values
-    &&
-    (heartbeatSensorTest >= MIN_BABY_HEARTBEAT && heartbeatSensorTest <= MAX_BABY_HEARTBEAT) // and the heartbeat sensor is returning a valid bmp
-  );
-
+  // motor check
   Serial.println("[CHECK] ==> Motor:");
+  int motorA = motor.getAmplitude();
   Serial.println("[CHECK] ==> amplitude   = " + motorA);
+  int motorF = motor.getFrequentcy();
   Serial.println("[CHECK] ==> frequentcy  = " + motorF);
+
+  // heartbeat check
   Serial.println("[CHECK] ==> HearBeatSensor:");
+  int heartbeatSensorTest = currentHeartbeat();
   Serial.println("[CHECK] ==> current_bmp = " + heartbeatSensorTest);
 
-  return result; //TODO
+  // sound check
+  Serial.println("[CHECK] ==> SoundSensor:");
+  int soundSensorTest = currentCryingStrength();
+  Serial.println("[CHECK] ==> current_bmp = " + soundSensorTest);
+
+  // display check
+  Serial.println("[CHECK] ==> Display:");
+  display.updateCurrentTask("testing");
+  Serial.println("[CHECK] ==> currentTask = testing");
+
+  // to make sure that you can see the display
+  delay(2000);
+  
+  bool result = (
+
+    // check motor has correct start values
+    (motorA == 50 && motorF == 50) &&
+
+    // and the heartbeat sensor is returning a valid bmp
+    (heartbeatSensorTest >= MIN_BABY_HEARTBEAT && heartbeatSensorTest <= MAX_BABY_HEARTBEAT) &&
+
+    // and the sound sensor is returning a valid bmp
+    (soundSensorTest != 0 && soundSensorTest != NULL)
+  );
+
+  return result;
 }
 
 /**
- * This is the main body of the code, it runs until the optimal frequentcy and amplitude are found.
+ * loop method for the ardruino, is unused.
  *
- * @post {@code frequentcy ~= optimal && amplitude ~= optimal}
+ * @pre true
  */
-void loop() {
-  improveFrequentcy();
-  improveAmplitude();
-  
-  // TODO Exception handling
-
-  // to show that we have done one loop, we blink.
-  blink();
-  updateDisplay();
-
-  // if it has been the same for a while, we break the loop
-  if (amplitudeCounter >= THRESHOLD && frequentcyCounter >= THRESHOLD) {
-    Serial.println("[CLOSE] ==> Found optimal solution.");
-    exiting();
-  }
-}
+void loop() { /* unused method, that has to be here for the compiler */}
 
 /**
  * turns the build in LED on for x seconds.
@@ -172,12 +200,66 @@ void blink() {
 /**
  * turns the build in LED on for x seconds.
  *
- * @pre LED_BUILTIN is set to INPUT
+ * @pre {@code display != null}
+ * @post the display shows the newest information.
  */
 void updateDisplay() {
   display.updateAmplitude((amplitudeUpper + amplitudeLower) / 2);
   display.updateFrequentcy((frequentcyLower + frequentcyUpper) / 2);
-  display.updateBPM(this.current_bmp());
+  display.updateBPM(currentHeartbeat());
+}
+
+/**
+ * This is the main body of the code, it runs until the path has been taken to the destination.
+ *
+ * @pre true
+ * @post {@code frequentcy ~= optimal && amplitude ~= optimal}
+ */
+void pathFinding() {
+  
+  while (true) {
+    // TODO try frequentcy
+    // TODO try amplitude
+    // TODO make a disicion
+    blink();
+    updateDisplay();
+
+    // Guard-statement TODO
+    if (false) {
+      Serial.println("[CLOSE] ==> Found path, destination reached, baby calmed.");
+    }
+  }
+
+  // to show that we have done one loop, we blink.
+  exiting(0);
+}
+
+/**
+ * This is the main body of the code, it runs until the optimal frequentcy and amplitude are found.
+ *
+ * @pre true
+ * @post {@code frequentcy ~= optimal && amplitude ~= optimal}
+ */
+void binarySearch() {
+
+  while (true) {
+    
+    // improve values
+    improveFrequentcy();
+    improveAmplitude();
+
+    // show we made cycle, and update the display
+    blink();
+    updateDisplay();
+
+    // if it has been the same for a while, we break the loop
+    if (amplitudeCounter >= THRESHOLD && frequentcyCounter >= THRESHOLD) {
+      Serial.println("[CLOSE] ==> Found optimal solution.");
+      break;
+    }
+  }
+
+  exiting(0);
 }
 
 /**
@@ -206,11 +288,12 @@ void improveFrequentcy() {
   lowerSearch = currentHeartbeat();
 
   /*
-   * we check if they are similar, if they are, then we up the counter, otherwise we reset. If it goes over the
-   * THRESHOLD, we stop the program.
+   * we check if they are similar, if they are, then we up the counter, otherwise we reset. If it
+   * goes over the THRESHOLD, we stop the program.
    */ 
   bool upperRange = (upperSearch <= lowerSearch + ACCEPTANCE_SENSITIVITY_FREQUENTCY);
   bool lowerRange = (lowerSearch >= upperSearch - ACCEPTANCE_SENSITIVITY_FREQUENTCY);
+  // checking if they are indeed similar:
   if (upperRange && lowerRange) {
     frequentcyCounter++;
     Serial.println("[ RUN ] ==> amplitudeCounter++ (" + String(frequentcyCounter) + ").");
@@ -221,8 +304,8 @@ void improveFrequentcy() {
   }
 
   /*
-   * if the upper setting lead to a lower heartbeat then this was perfered and then this is where the solution
-   * is, else, its on the other side.
+   * if the upper setting lead to a lower heartbeat then this was perfered and then this is where
+   * the solution is, else, its on the other side.
    */
   if (upperSearch < lowerSearch) { 
     Serial.println("[ RUN ] ==> optimal frequentcy is in the upper half.");
@@ -262,11 +345,12 @@ void improveAmplitude() {
   lowerSearch = currentHeartbeat();
 
   /*
-   * we check if they are similar, if they are, then we up the counter, otherwise we reset. If it goes over the
-   * THRESHOLD, we stop the program.
+   * we check if they are similar, if they are, then we up the counter, otherwise we reset. If it 
+   * goes over the THRESHOLD, we stop the program.
    */ 
   bool upperRange = (upperSearch <= lowerSearch + ACCEPTANCE_SENSITIVITY_AMPLITUDE);
   bool lowerRange = (lowerSearch >= upperSearch - ACCEPTANCE_SENSITIVITY_AMPLITUDE);
+  // checking if they are indeed similar:
   if (upperRange && lowerRange) {
     amplitudeCounter++;
     Serial.println("[ RUN ] ==> amplitudeCounter++ (" + String(amplitudeCounter) + ").");
@@ -277,8 +361,8 @@ void improveAmplitude() {
   }
 
   /*
-   * if the upper setting lead to a lower heartbeat then this was perfered and then this is where the solution
-   * is, else, its on the other side.
+   * if the upper setting lead to a lower heartbeat then this was perfered and then this is where
+   * the solution is, else, its on the other side.
    */
   if (upperSearch < lowerSearch) { 
     Serial.println("[ RUN ] ==> optimal amplitude is in the upper half.");
@@ -293,7 +377,8 @@ void improveAmplitude() {
 }
 
 /**
- * Takes n measurements, each with a delay of m miliseconds, then takes the mode of that en then returns that.
+ * Takes n measurements, each with a delay of m miliseconds, then takes the mode of that en then
+ * returns that.
  * 
  * @pre {@code heartbeatSensor != null}
  * @return the mode of n measurements, each with a delay of m miliseconds.
@@ -320,7 +405,7 @@ int currentCryingStrength() {
  * @pre {@code heartbeatSensor != null && motor != null}
  * @post we exited the programm 
  */ 
-void exiting() {
+void exiting(int exitCode) {
 
   Serial.println("[CLOSE] ==> Programm will now terminate.\n");
 
@@ -329,5 +414,6 @@ void exiting() {
   soundSensor.close();
   display.close();
 
-  exit(0);
+  Serial.println("[CLOSE] ==> Programm terminated.\n");
+  exit(exitCode);
 }

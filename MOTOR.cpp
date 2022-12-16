@@ -15,8 +15,9 @@
 /**
  * An object to contol the motors amplitude, and frequentcy.
  */
-Motor::Motor(int pin) {
-  MOTORPin = pin;
+Motor::Motor(int pinF, int pinA, bool EoE) {
+  moterPinFrequency = pinF;
+  moterPinAmplitude = pinA;
 }
 
 /**
@@ -25,10 +26,16 @@ Motor::Motor(int pin) {
  * @pre {@code pinHeartbeatSensor != null}
  */
 void Motor::open() {
-  pinMode(MOTORPin, INPUT);
+  
+  // set the pins to the right mode
+  pinMode(moterPinFrequency, INPUT);
+  pinMode(moterPinAmplitude, INPUT);
+
   // I am not sure what the " -> " operator does, but at least it compiles.
+  // todo remove
   this -> setAmplitude(50);
   this -> setFrequentcy(50);
+
   Serial.println("[BUILD] => Opened the motor for input.");
 }
 
@@ -40,8 +47,9 @@ void Motor::open() {
  */
 void Motor::setAmplitude(int target) {
   Serial.println("[ RUN ] ==> setting amplitude to: " + target);
+  // TODO use map function
   double newTarget = (255 / 100) * (0.0 + target);
-  analogWrite(MOTORPin, (int) newTarget);
+  analogWrite(moterPinAmplitude, (int) newTarget);
   amplitude = target;
 }
 
@@ -53,15 +61,16 @@ void Motor::setAmplitude(int target) {
  */
 void Motor::setFrequentcy(int target) {
   Serial.println("[ RUN ] ==> setting frequentcy to: " + target);
+  // TODO use map function
   double newTarget = (255 / 100) * (0.0 + target);
-  analogWrite(MOTORPin, (int) newTarget);
+  analogWrite(moterPinFrequency, (int) newTarget);
   frequentcy = target;
 }
 
 /**
  * gets the current amplitude.
  *
- * @return amplitude
+ * @return this.amplitude
  */
 int Motor::getAmplitude() {
   Serial.println("[FETCH] ==> Gotten Amplitude: " + String(amplitude) + ".");
@@ -71,7 +80,7 @@ int Motor::getAmplitude() {
 /**
  * gets the current frequentcy.
  *
- * @return frequentcy
+ * @return this.frequentcy
  */
 int Motor::getFrequentcy() {
   Serial.println("[FETCH] ==> Gotten Frequency: " + String(frequentcy) + ".");
@@ -83,7 +92,7 @@ int Motor::getFrequentcy() {
  */
 void Motor::close() {
 
-  // code: analogWrite(MOTORPin, 0); 
+  // TODO. Maybe code: analogWrite(MOTORPin, 0); 
 
   Serial.println("[CLOSE] ==> Closed the motor for input.");
 }

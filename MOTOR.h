@@ -16,12 +16,14 @@
  */
 class Motor {
   private:
-    int MOTORPin;
+  	int moterPinFrequency;
+    int moterPinAmplitude;
     int frequentcy;
     int amplitude;
+    bool exitOnError;
 
   public:
-    Motor(int pin);
+    Motor(int pin, bool EoE);
     void open();
     void setAmplitude(int target);
     void setFrequentcy(int target);
