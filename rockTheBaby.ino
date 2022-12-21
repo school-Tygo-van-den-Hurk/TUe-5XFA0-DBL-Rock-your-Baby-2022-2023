@@ -11,8 +11,6 @@
  * Define the constands: (you can change this), however, there are also some defined in the objects
  * themselves
  */
-//  - exit on error:
-#define EXIT_ON_ERROR                         true
 // Define pins: (you can change this)                 // Choose out of these options, and no other.
 #define HEARTBEATSENSOR_PIN                   35      // analog pin  :  {A0, A1, A2, A3, A4}
 #define MOTOR_PIN_frequency                   3       //    PWM pin  :  {3, 5, 6, 9, 10, 11}
@@ -21,20 +19,35 @@
  
 // Define global Objects: (do not change)
 #include <headerFiles/HeartbeatSensor.h>
-HeartbeatSensor heartbeatSensor(
-  HEARTBEATSENSOR_PIN, AMOUNT_OF_MEASUREMENTS,
-  AMOUNT_OF_TIME_BETWEEN_MEASUREMENTS, EXIT_ON_ERROR
-);
-#include <headerFiles/MOTOR.h>
-Motor motor(MOTOR_PIN_frequency, MOTOR_PIN_amplitude, EXIT_ON_ERROR);
-#include <headerFiles/SoundSensor.h>
-SoundSensor soundSensor(SOUNDSENSOR_PIN, EXIT_ON_ERROR);
-#include <headerFiles/Display.h>
-Display display(EXIT_ON_ERROR);
-#include <headerFiles/CommonMethods.h>
-CommonMethods commonMethods(EXIT_ON_ERROR);
+/** Sensor to measure the heartbeat of the baby */
+HeartbeatSensor heartbeatSensor(HEARTBEATSENSOR_PIN);
 
-#include "M5Stack.h"
+#include <headerFiles/MOTOR.h>
+/** Object to control the motors to rock the baby */
+Motor motor(MOTOR_PIN_frequency, MOTOR_PIN_amplitude);
+
+#include <headerFiles/SoundSensor.h>
+/** Sensor to measure the crying level of the baby */
+SoundSensor soundSensor(SOUNDSENSOR_PIN);
+
+#include <M5Stack.h>
+#include <headerFiles/Display.h>
+/** Object to control the M5Stack's Display */
+Display display();
+
+#include <headerFiles/Common.h>
+/** Object to acces common functions */
+Common common(&heartbeatSensor, &motor, &soundSensor, &display);
+
+#include <headerFiles/BinarySearch.h>
+/** Algarithm to calm the baby down. */
+BinarySearch binarySearch(&common);
+
+#include <headerFiles/PathFinding.h>
+/** Algarithm to calm the baby down. */
+PathFinding pathFinding(&common);
+
+#include <headerFiles/Exception.h>
 //
 /*
  * Contains the following methods (in this order):
@@ -58,6 +71,7 @@ void setup() {
   commonMethods.setupSensors();
   display.drawOptions();
   Serial.println("[BUILD] ==> please chose an algorithm to calm the baby.");
+  /** Wether or not to use PathFinding, if false BinarySearch will be used. */
   bool usePathFindingBool = usePathFinding();
 
   if (usePathFindingBool) {
@@ -78,7 +92,7 @@ void setup() {
    */
   Serial.println("[ERROR] ==> You've somehow reached unreachable code.");
   Serial.println("            this was at: void RockYourBaby::setup()");
-  commonMethods.exiting(1);
+  Exception::thrown();
 }
 
 /**
@@ -108,7 +122,6 @@ bool usePathFinding() {
  * leave it in.
  *
  * @pre true
- * @since 1.0
  */
 void loop() {
   //
