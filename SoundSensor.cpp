@@ -8,7 +8,7 @@
  */
 // SoundSensor.cpp
 #include "Arduino.h"
-#include "SoundSensor.h"
+#include "headerFiles/SoundSensor.h"
 
 /**
  * An object to get the baby's crying strength.
